@@ -152,6 +152,7 @@ COLORS_UPPER = list(COLOR_MAP.keys())
 COLORS_LOWER = list(map(str.lower, COLORS))
 COLORS_MISC = [
     r'rgb *\( *[0-9]{1,3} *, *[0-9]{1,3} *, *[0-9]{1,3} *\)',
+    # TODO: alpha is 0-1
     r'rgba *\( *[0-9]{1,3} *, *[0-9]{1,3} *, *[0-9]{1,3} *, *[0-9]{1,3} *\)'
 ]
 RE_C = re.compile(
@@ -187,29 +188,78 @@ while True:
     css_mod += css_tmp[:idx_a]
     css_tmp = css_tmp[idx_b + 2:]
 
-# { then } or @media{} then maybe another {}...
-# depth = 0
-# token_stack = []
-#
-# i = 0
-# while i < len(css_mod):
-#     c = css_mod[i]
-#     if not token_stack:
-#         if c in '@{':
-#             token_stack.append((c, i))
-#         else:
-#             assert c != '}'
-#         i += 1
-#     else:
-#         token, i0 = token_stack[-1]
-#         if token == '@':
-#             assert c != '}'
-#         elif token == '{':
-#             pass
-#         elif token == '}':
-#             pass
 
-# assert not token_stack, 'extra tokens...{}'.format(token_stack)
+def handle_color(line):
+    # Color
+    color_orig = color = color_match.groups()[0]
+    alpha = None
+
+    if color.startswith('#'):
+        color = color[1:]
+        if len(color) == 6:
+            pass
+        elif len(color) == 3:
+            color = color[0] * 2 + color[1] * 2 + color[2] * 2
+        else:
+            raise RuntimeError('This was unexpected')
+        color_rgb = (int(color[:2], 16),
+                     int(color[2:4], 16),
+                     int(color[4:], 16))
+    elif color.startswith('rgb'):
+        color_rgb = color[color.index('(') + 1:
+                          color.index(')')].split(',')
+        if color[3] == 'a':
+            assert len(color_rgb) == 4
+            alpha = color_rgb.pop(3)
+        else:
+            assert len(color_rgb) == 3
+        color_rgb = list(map(int, color_rgb))
+    else:
+        color = format(COLOR_MAP[color.upper()], '06X')
+        color_rgb = (int(color[:2], 16),
+                     int(color[2:4], 16),
+                     int(color[4:], 16))
+
+    colors.append(color)
+
+    color_hsv = colorsys.rgb_to_hsv(*color_rgb)
+
+    # Filter saturate + output
+    # if color_rgb == (48, 65, 84):  # TODO: ad hoc for propublica
+    if color_hsv[1] < 0.15:
+        # Invert color
+        # color_rgb = [120, 147, 179]  # TODO: ad hoc for propublica
+        color_rgb = [255 - c for c in color_rgb]
+        if alpha is None:
+            color = '#' + ''.join(map(lambda u: format(u, '02X'),
+                                      color_rgb))
+        else:
+            color_rgb.append(alpha)
+            color = 'rgba({}, {}, {}, {})'.format(*color_rgb)
+        line = line.replace(color_orig, color)
+
+        # Rule with colors
+        color_content.append(
+            ': '.join(line.strip().split(':', 1)) + ';'
+        )
+    # Rescale from min-max 000-FFF to 111-EEE
+    # def scale_channel(ch):
+    #     return round(ch / 0xFF * (0xEE - 0x11) + 0x11)
+    #
+    #
+    # color_rgb = list(map(scale_channel, color_rgb))
+    # if alpha is None:
+    #     color = '#' + ''.join(map(lambda u: format(u, '02X'),
+    #                               color_rgb))
+    # else:
+    #     color_rgb.append(alpha)
+    #     color = 'rgba({}, {}, {}, {})'.format(*color_rgb)
+    # line = line.replace(color_orig, color)
+    # # Rule with colors
+    # color_content.append(
+    #     ': '.join(line.strip().split(':', 1)) + ';'
+    # )
+
 
 rule_out = ''
 colors = []
@@ -219,11 +269,31 @@ colors = []
 import tinycss2
 
 with open('css/nytimes.css') as f:
-    css = tinycss2.parse_stylesheet(f.read(), skip_comments=True, skip_whitespace=True)
+    css = tinycss2.parse_stylesheet(f.read(), skip_comments=True,
+                                    skip_whitespace=True)
 
 for rule in css:
-    if isinstance(rule, tinycss2.ast.AtRule):
-        at_rules = tinycss2.parse_stylesheet(rule.content, skip_comments=True, skip_whitespace=True)
+    if rule.type == 'at-rule':
+        at_rules = tinycss2.parse_stylesheet(rule.content, skip_comments=True,
+                                             skip_whitespace=True)
+    else:
+        pass
+
+
+def parse_colors(rule):
+    for token in rule.content:
+        if token.type == 'whitespace' or token.type == 'comment':
+            pass  # ignore these tokens
+        if token.type == 'literal' and token.value == ';':
+            pass  # end of line
+        if (token.type == 'function' and
+                (token.lower_name == 'rgb' or token.lower_name == 'rgba')):
+            pass  # rgb/rgba
+        if token.type == 'ident' and token.value == 'color':
+            pass  # token with color as value
+        if token.type == 'hash':
+            pass  # hash token, get value using `token.value`
+
 
 # TODO
 # tinycss2.ast.FunctionBlock -> x.arguments for rgb/rgba (x.name)
@@ -251,75 +321,7 @@ for match in RE_R.finditer(css_mod):
         # TODO: multiple colors in same line/rule...
         color_match = RE_C.search(line)
         if color_match:
-            # Color
-            color_orig = color = color_match.groups()[0]
-            alpha = None
-
-            if color.startswith('#'):
-                color = color[1:]
-                if len(color) == 6:
-                    pass
-                elif len(color) == 3:
-                    color = color[0] * 2 + color[1] * 2 + color[2] * 2
-                else:
-                    raise RuntimeError('This was unexpected')
-                color_rgb = (int(color[:2], 16),
-                             int(color[2:4], 16),
-                             int(color[4:], 16))
-            elif color.startswith('rgb'):
-                color_rgb = color[color.index('(') + 1:
-                                  color.index(')')].split(',')
-                if color[3] == 'a':
-                    assert len(color_rgb) == 4
-                    alpha = color_rgb.pop(3)
-                else:
-                    assert len(color_rgb) == 3
-                color_rgb = list(map(int, color_rgb))
-            else:
-                color = format(COLOR_MAP[color.upper()], '06X')
-                color_rgb = (int(color[:2], 16),
-                             int(color[2:4], 16),
-                             int(color[4:], 16))
-
-            colors.append(color)
-
-            color_hsv = colorsys.rgb_to_hsv(*color_rgb)
-
-            # Filter saturate + output
-            # if color_rgb == (48, 65, 84):  # TODO: ad hoc for propublica
-            if color_hsv[1] < 0.15:
-                # Invert color
-                # color_rgb = [120, 147, 179]  # TODO: ad hoc for propublica
-                color_rgb = [255 - c for c in color_rgb]
-                if alpha is None:
-                    color = '#' + ''.join(map(lambda u: format(u, '02X'),
-                                              color_rgb))
-                else:
-                    color_rgb.append(alpha)
-                    color = 'rgba({}, {}, {}, {})'.format(*color_rgb)
-                line = line.replace(color_orig, color)
-
-                # Rule with colors
-                color_content.append(
-                    ': '.join(line.strip().split(':', 1)) + ';'
-                )
-            # Rescale from min-max 000-FFF to 111-EEE
-            # def scale_channel(ch):
-            #     return round(ch / 0xFF * (0xEE - 0x11) + 0x11)
-            # 
-            # 
-            # color_rgb = list(map(scale_channel, color_rgb))
-            # if alpha is None:
-            #     color = '#' + ''.join(map(lambda u: format(u, '02X'),
-            #                               color_rgb))
-            # else:
-            #     color_rgb.append(alpha)
-            #     color = 'rgba({}, {}, {}, {})'.format(*color_rgb)
-            # line = line.replace(color_orig, color)
-            # # Rule with colors
-            # color_content.append(
-            #     ': '.join(line.strip().split(':', 1)) + ';'
-            # )
+            handle_color(line)
     if color_content:
         sep = '\n    '
         rule_pretty = (
