@@ -168,25 +168,30 @@ RE_R = re.compile(
     r'([^{}]+{(?:([^{}]*{[^{}]*}[^{}]*)+|[^{}]*)})'
 )
 
-filename = sys.argv[1]
-with open(filename, 'r') as f:
-    css_orig = f.read()
-
-css_tmp = css_orig
-css_mod = ''
-while True:
-    # Remove comments
-    idx_a = css_tmp.find('/*')
-    if idx_a == -1:
-        css_mod += css_tmp
-        break
-    idx_b_adjust = idx_a + 2
-    idx_b = css_tmp[idx_b_adjust:].find('*/') + idx_b_adjust
-    if idx_b == -1:
-        raise ValueError('Invalid comment: "{}"'.format(
-            css_tmp[idx_a:idx_a + 80]))
-    css_mod += css_tmp[:idx_a]
-    css_tmp = css_tmp[idx_b + 2:]
+# if len(sys.argv) == 1:
+#     css_orig = sys.stdin.read()
+# elif len(sys.argv) == 2:
+#     filename = sys.argv[1]
+#     with open(filename, 'r') as f:
+#         css_orig = f.read()
+# else:
+#     sys.exit('Usage: use it correctly')
+#
+# css_tmp = css_orig
+# css_mod = ''
+# while True:
+#     # Remove comments
+#     idx_a = css_tmp.find('/*')
+#     if idx_a == -1:
+#         css_mod += css_tmp
+#         break
+#     idx_b_adjust = idx_a + 2
+#     idx_b = css_tmp[idx_b_adjust:].find('*/') + idx_b_adjust
+#     if idx_b == -1:
+#         raise ValueError('Invalid comment: "{}"'.format(
+#             css_tmp[idx_a:idx_a + 80]))
+#     css_mod += css_tmp[:idx_a]
+#     css_tmp = css_tmp[idx_b + 2:]
 
 
 def handle_color(line):
@@ -266,34 +271,86 @@ colors = []
 # TODO: the following string breaks RE_R regex (catastrophic backtracking):
 #  @supports (grid-auto-flow:dense){.sg-row.s-result-list{display:grid;align-items:stretch;justify-items:stretch}.sg-row.s-result-list.s-search-results{grid-auto-flow:dense}.s-result-list>.sg-col{float:none;min-width:0;width:auto}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col{min-width:0;width:auto}.s-result-list>.s-flex-geom.sg-col{display:block}.s-result-list>*{grid-column:1/-1}.s-result-list>.sg-col-1-of-16{grid-column:auto/span 1}.s-result-list>.sg-col-2-of-16{grid-column:auto/span 2}.s-result-list>.sg-col-3-of-16{grid-column:auto/span 3}.s-result-list>.sg-col-4-of-16{grid-column:auto/span 4}.s-result-list>.sg-col-5-of-16{grid-column:auto/span 5}.s-result-list>.sg-col-6-of-16{grid-column:auto/span 6}.s-result-list>.sg-col-7-of-16{grid-column:auto/span 7}.s-result-list>.sg-col-8-of-16{grid-column:auto/span 8}.s-result-list>.sg-col-9-of-16{grid-column:auto/span 9}.s-result-list>.sg-col-10-of-16{grid-column:auto/span 10}.s-result-list>.sg-col-11-of-16{grid-column:auto/span 11}.s-result-list>.sg-col-12-of-16{grid-column:auto/span 12}.s-result-list>.sg-col-13-of-16{grid-column:auto/span 13}.s-result-list>.sg-col-14-of-16{grid-column:auto/span 14}.s-result-list>.sg-col-15-of-16{grid-column:auto/span 15}.s-result-list>.sg-col-16-of-16{grid-column:auto/span 16}@media (min-width:1250px){.s-result-list>.sg-col-1-of-20{grid-column:auto/span 1}.s-result-list>.sg-col-2-of-20{grid-column:auto/span 2}.s-result-list>.sg-col-3-of-20{grid-column:auto/span 3}.s-result-list>.sg-col-4-of-20{grid-column:auto/span 4}.s-result-list>.sg-col-5-of-20{grid-column:auto/span 5}.s-result-list>.sg-col-6-of-20{grid-column:auto/span 6}.s-result-list>.sg-col-7-of-20{grid-column:auto/span 7}.s-result-list>.sg-col-8-of-20{grid-column:auto/span 8}.s-result-list>.sg-col-9-of-20{grid-column:auto/span 9}.s-result-list>.sg-col-10-of-20{grid-column:auto/span 10}.s-result-list>.sg-col-11-of-20{grid-column:auto/span 11}.s-result-list>.sg-col-12-of-20{grid-column:auto/span 12}.s-result-list>.sg-col-13-of-20{grid-column:auto/span 13}.s-result-list>.sg-col-14-of-20{grid-column:auto/span 14}.s-result-list>.sg-col-15-of-20{grid-column:auto/span 15}.s-result-list>.sg-col-16-of-20{grid-column:auto/span 16}.s-result-list>.sg-col-17-of-20{grid-column:auto/span 17}.s-result-list>.sg-col-18-of-20{grid-column:auto/span 18}.s-result-list>.sg-col-19-of-20{grid-column:auto/span 19}.s-result-list>.sg-col-20-of-20{grid-column:auto/span 20}}.sg-row.s-result-list{margin-right:-12px}.sg-row.s-result-list{grid-template-columns:repeat(12,1fr)}.s-result-list>.sg-col-13-of-16{grid-column:auto/span 12}.s-result-list>.sg-col-14-of-16{grid-column:auto/span 12}.s-result-list>.sg-col-15-of-16{grid-column:auto/span 12}.s-result-list>.sg-col-16-of-16{grid-column:auto/span 12}@media (min-width:1250px){.sg-row.s-result-list{grid-template-columns:repeat(16,1fr)}.s-result-list>.sg-col-17-of-20{grid-column:auto/span 16}.s-result-list>.sg-col-18-of-20{grid-column:auto/span 16}.s-result-list>.sg-col-19-of-20{grid-column:auto/span 16}.s-result-list>.sg-col-20-of-20{grid-column:auto/span 16}}@media (min-width:220px){.nav-ewc-persistent-hover.a-js .sg-row.s-result-list{grid-template-columns:repeat(12,1fr)}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-9-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-10-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-11-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-12-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-13-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-14-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-15-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-16-of-16{grid-column:auto/span 12}}@media (min-width:1470px){.nav-ewc-persistent-hover.a-js .sg-row.s-result-list{grid-template-columns:repeat(16,1fr)}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-13-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-14-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-15-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-16-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-17-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-18-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-19-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-20-of-20{grid-column:auto/span 16}}}
 
+
 import tinycss2
+import tinycss2.ast
+
+
+def parse_rules(rules):
+    color_rules = []
+    for rule in rules:
+        if not rule.content:
+            continue  # no declarations, either empty or @import
+        color_sub_rules = None
+        if rule.type == 'at-rule':
+            at_keyword = rule.at_keyword
+            sub_rules = []
+            declarations = []
+            at_rule_content = tinycss2.parse_stylesheet(
+                rule.content, skip_comments=True, skip_whitespace=True)
+            for token in at_rule_content:
+                if token.type.endswith('-rule'):
+                    sub_rules.append(token)
+                else:
+                    declarations.append(token)
+            if sub_rules:
+                color_sub_rules = parse_rules(sub_rules)
+        else:
+            declarations = rule.content
+        # Grab color declarations
+        color_declarations = parse_colors(declarations)
+
+        if color_sub_rules:
+            color_declarations.extend(color_sub_rules)
+
+        if color_declarations:
+            # color_rule = tinycss2.ast.QualifiedRule(
+            #     line=rule.source_line, column=rule.source_column,
+            #     prelude=selector, content=color_declarations
+            # )
+            rule.content = color_declarations
+            color_rules.append(rule)
+    # Return CSS string
+    return color_rules
+
+
+def parse_colors(declarations):
+    # https://tinycss2.readthedocs.io/en/latest/
+    color_declarations = []
+    col_dec = []
+    is_color = False
+    for token in declarations:
+        if ((token.type == 'whitespace' and not col_dec) or
+                token.type == 'comment'):
+            continue  # ignore these tokens
+        # Otherwise
+        col_dec.append(token)
+        if token.type == 'literal' and token.value == ';':
+            # end of line
+            if is_color:
+                color_declarations.extend(col_dec)
+            # Reset
+            col_dec = []
+            is_color = False
+        elif (token.type == 'function' and
+              (token.lower_name == 'rgb' or token.lower_name == 'rgba')):
+            is_color = True  # rgb/rgba
+        elif token.type == 'ident':
+            token_val = token.value.lower()
+            if token_val.endswith('-color') or token_val == 'color':
+                is_color = True  # token with color as value
+        elif token.type == 'hash':
+            # TODO: is this always true?
+            is_color = True  # hash token, get value using `token.value`
+    return color_declarations
+
 
 with open('css/nytimes.css') as f:
     css = tinycss2.parse_stylesheet(f.read(), skip_comments=True,
                                     skip_whitespace=True)
 
-for rule in css:
-    if rule.type == 'at-rule':
-        at_rules = tinycss2.parse_stylesheet(rule.content, skip_comments=True,
-                                             skip_whitespace=True)
-    else:
-        pass
-
-
-def parse_colors(rule):
-    for token in rule.content:
-        if token.type == 'whitespace' or token.type == 'comment':
-            pass  # ignore these tokens
-        if token.type == 'literal' and token.value == ';':
-            pass  # end of line
-        if (token.type == 'function' and
-                (token.lower_name == 'rgb' or token.lower_name == 'rgba')):
-            pass  # rgb/rgba
-        if token.type == 'ident' and token.value == 'color':
-            pass  # token with color as value
-        if token.type == 'hash':
-            pass  # hash token, get value using `token.value`
-
+color_rules = parse_rules(css)
+print(tinycss2.serialize(color_rules))
 
 # TODO
 # tinycss2.ast.FunctionBlock -> x.arguments for rgb/rgba (x.name)
