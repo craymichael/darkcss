@@ -147,26 +147,28 @@ COLOR_MAP = {
     'YellowGreen': 0x9ACD32
 }
 COLORS = list(COLOR_MAP.keys())
-COLOR_MAP = dict(zip(map(str.upper, COLORS), COLOR_MAP.values()))
-COLORS_UPPER = list(COLOR_MAP.keys())
-COLORS_LOWER = list(map(str.lower, COLORS))
-COLORS_MISC = [
-    r'rgb *\( *[0-9]{1,3} *, *[0-9]{1,3} *, *[0-9]{1,3} *\)',
-    # TODO: alpha is 0-1
-    r'rgba *\( *[0-9]{1,3} *, *[0-9]{1,3} *, *[0-9]{1,3} *, *[0-9]{1,3} *\)'
-]
-RE_C = re.compile(
-    r'(#[a-fA-F0-9]{3}|'
-    r'#[a-fA-F0-9]{6}|'
-    r'(?<=[: \t\n])(?:' +
-    '|'.join(chain(COLORS, COLORS_UPPER, COLORS_LOWER, COLORS_MISC)) +
-    r'))'
-    r'(?:[; \t\n!}]+|$)'
-)
-# CSS rules
-RE_R = re.compile(
-    r'([^{}]+{(?:([^{}]*{[^{}]*}[^{}]*)+|[^{}]*)})'
-)
+# COLOR_MAP = dict(zip(map(str.upper, COLORS), COLOR_MAP.values()))
+COLOR_MAP = dict(zip(map(str.lower, COLORS), COLOR_MAP.values()))
+# COLORS_UPPER = list(COLOR_MAP.keys())
+# COLORS_LOWER = list(map(str.lower, COLORS))
+# COLORS_MISC = [
+#     r'rgb *\( *[0-9]{1,3} *, *[0-9]{1,3} *, *[0-9]{1,3} *\)',
+#     # TODO: alpha is 0-1
+#     r'rgba *\( *[0-9]{1,3} *, *[0-9]{1,3} *, *[0-9]{1,3} *, *[0-9]{1,3} *\)'
+# ]
+# RE_C = re.compile(
+#     r'(#[a-fA-F0-9]{3}|'
+#     r'#[a-fA-F0-9]{6}|'
+#     r'(?<=[: \t\n])(?:' +
+#     '|'.join(chain(COLORS, COLORS_UPPER, COLORS_LOWER, COLORS_MISC)) +
+#     r'))'
+#     r'(?:[; \t\n!}]+|$)'
+# )
+# # CSS rules
+# RE_R = re.compile(
+#     r'([^{}]+{(?:([^{}]*{[^{}]*}[^{}]*)+|[^{}]*)})'
+# )
+
 
 # if len(sys.argv) == 1:
 #     css_orig = sys.stdin.read()
@@ -194,84 +196,86 @@ RE_R = re.compile(
 #     css_tmp = css_tmp[idx_b + 2:]
 
 
-def handle_color(line):
-    # Color
-    color_orig = color = color_match.groups()[0]
-    alpha = None
+# def handle_color(line):
+#     # TODO: hex with opacity (e.g. #00f4 or #0000ff44, 4/16 opacity)
+#     # TODO hsl[a] takes in percentages...
+#     # Color
+#     color_orig = color = color_match.groups()[0]
+#     alpha = None
+#
+#     if color.startswith('#'):
+#         color = color[1:]
+#         if len(color) == 6:
+#             pass
+#         elif len(color) == 3:
+#             color = color[0] * 2 + color[1] * 2 + color[2] * 2
+#         else:
+#             raise RuntimeError('This was unexpected')
+#         color_rgb = (int(color[:2], 16),
+#                      int(color[2:4], 16),
+#                      int(color[4:], 16))
+#     elif color.startswith('rgb'):
+#         color_rgb = color[color.index('(') + 1:
+#                           color.index(')')].split(',')
+#         if color[3] == 'a':
+#             assert len(color_rgb) == 4
+#             alpha = color_rgb.pop(3)
+#         else:
+#             assert len(color_rgb) == 3
+#         color_rgb = list(map(int, color_rgb))
+#     else:
+#         color = format(COLOR_MAP[color.upper()], '06X')
+#         color_rgb = (int(color[:2], 16),
+#                      int(color[2:4], 16),
+#                      int(color[4:], 16))
+#
+#     colors.append(color)
+#
+#     color_hsv = colorsys.rgb_to_hsv(*color_rgb)
+#
+#     # Filter saturate + output
+#     # if color_rgb == (48, 65, 84):  # TODO: ad hoc for propublica
+#     if color_hsv[1] < 0.15:
+#         # Invert color
+#         # color_rgb = [120, 147, 179]  # TODO: ad hoc for propublica
+#         color_rgb = [255 - c for c in color_rgb]
+#         if alpha is None:
+#             color = '#' + ''.join(map(lambda u: format(u, '02X'),
+#                                       color_rgb))
+#         else:
+#             color_rgb.append(alpha)
+#             color = 'rgba({}, {}, {}, {})'.format(*color_rgb)
+#         line = line.replace(color_orig, color)
+#
+#         # Rule with colors
+#         color_content.append(
+#             ': '.join(line.strip().split(':', 1)) + ';'
+#         )
+#     # Rescale from min-max 000-FFF to 111-EEE
+#     # def scale_channel(ch):
+#     #     return round(ch / 0xFF * (0xEE - 0x11) + 0x11)
+#     #
+#     #
+#     # color_rgb = list(map(scale_channel, color_rgb))
+#     # if alpha is None:
+#     #     color = '#' + ''.join(map(lambda u: format(u, '02X'),
+#     #                               color_rgb))
+#     # else:
+#     #     color_rgb.append(alpha)
+#     #     color = 'rgba({}, {}, {}, {})'.format(*color_rgb)
+#     # line = line.replace(color_orig, color)
+#     # # Rule with colors
+#     # color_content.append(
+#     #     ': '.join(line.strip().split(':', 1)) + ';'
+#     # )
 
-    if color.startswith('#'):
-        color = color[1:]
-        if len(color) == 6:
-            pass
-        elif len(color) == 3:
-            color = color[0] * 2 + color[1] * 2 + color[2] * 2
-        else:
-            raise RuntimeError('This was unexpected')
-        color_rgb = (int(color[:2], 16),
-                     int(color[2:4], 16),
-                     int(color[4:], 16))
-    elif color.startswith('rgb'):
-        color_rgb = color[color.index('(') + 1:
-                          color.index(')')].split(',')
-        if color[3] == 'a':
-            assert len(color_rgb) == 4
-            alpha = color_rgb.pop(3)
-        else:
-            assert len(color_rgb) == 3
-        color_rgb = list(map(int, color_rgb))
-    else:
-        color = format(COLOR_MAP[color.upper()], '06X')
-        color_rgb = (int(color[:2], 16),
-                     int(color[2:4], 16),
-                     int(color[4:], 16))
 
-    colors.append(color)
-
-    color_hsv = colorsys.rgb_to_hsv(*color_rgb)
-
-    # Filter saturate + output
-    # if color_rgb == (48, 65, 84):  # TODO: ad hoc for propublica
-    if color_hsv[1] < 0.15:
-        # Invert color
-        # color_rgb = [120, 147, 179]  # TODO: ad hoc for propublica
-        color_rgb = [255 - c for c in color_rgb]
-        if alpha is None:
-            color = '#' + ''.join(map(lambda u: format(u, '02X'),
-                                      color_rgb))
-        else:
-            color_rgb.append(alpha)
-            color = 'rgba({}, {}, {}, {})'.format(*color_rgb)
-        line = line.replace(color_orig, color)
-
-        # Rule with colors
-        color_content.append(
-            ': '.join(line.strip().split(':', 1)) + ';'
-        )
-    # Rescale from min-max 000-FFF to 111-EEE
-    # def scale_channel(ch):
-    #     return round(ch / 0xFF * (0xEE - 0x11) + 0x11)
-    #
-    #
-    # color_rgb = list(map(scale_channel, color_rgb))
-    # if alpha is None:
-    #     color = '#' + ''.join(map(lambda u: format(u, '02X'),
-    #                               color_rgb))
-    # else:
-    #     color_rgb.append(alpha)
-    #     color = 'rgba({}, {}, {}, {})'.format(*color_rgb)
-    # line = line.replace(color_orig, color)
-    # # Rule with colors
-    # color_content.append(
-    #     ': '.join(line.strip().split(':', 1)) + ';'
-    # )
-
-
-rule_out = ''
-colors = []
+# rule_out = ''
+# colors = []
 # TODO: the following string breaks RE_R regex (catastrophic backtracking):
 #  @supports (grid-auto-flow:dense){.sg-row.s-result-list{display:grid;align-items:stretch;justify-items:stretch}.sg-row.s-result-list.s-search-results{grid-auto-flow:dense}.s-result-list>.sg-col{float:none;min-width:0;width:auto}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col{min-width:0;width:auto}.s-result-list>.s-flex-geom.sg-col{display:block}.s-result-list>*{grid-column:1/-1}.s-result-list>.sg-col-1-of-16{grid-column:auto/span 1}.s-result-list>.sg-col-2-of-16{grid-column:auto/span 2}.s-result-list>.sg-col-3-of-16{grid-column:auto/span 3}.s-result-list>.sg-col-4-of-16{grid-column:auto/span 4}.s-result-list>.sg-col-5-of-16{grid-column:auto/span 5}.s-result-list>.sg-col-6-of-16{grid-column:auto/span 6}.s-result-list>.sg-col-7-of-16{grid-column:auto/span 7}.s-result-list>.sg-col-8-of-16{grid-column:auto/span 8}.s-result-list>.sg-col-9-of-16{grid-column:auto/span 9}.s-result-list>.sg-col-10-of-16{grid-column:auto/span 10}.s-result-list>.sg-col-11-of-16{grid-column:auto/span 11}.s-result-list>.sg-col-12-of-16{grid-column:auto/span 12}.s-result-list>.sg-col-13-of-16{grid-column:auto/span 13}.s-result-list>.sg-col-14-of-16{grid-column:auto/span 14}.s-result-list>.sg-col-15-of-16{grid-column:auto/span 15}.s-result-list>.sg-col-16-of-16{grid-column:auto/span 16}@media (min-width:1250px){.s-result-list>.sg-col-1-of-20{grid-column:auto/span 1}.s-result-list>.sg-col-2-of-20{grid-column:auto/span 2}.s-result-list>.sg-col-3-of-20{grid-column:auto/span 3}.s-result-list>.sg-col-4-of-20{grid-column:auto/span 4}.s-result-list>.sg-col-5-of-20{grid-column:auto/span 5}.s-result-list>.sg-col-6-of-20{grid-column:auto/span 6}.s-result-list>.sg-col-7-of-20{grid-column:auto/span 7}.s-result-list>.sg-col-8-of-20{grid-column:auto/span 8}.s-result-list>.sg-col-9-of-20{grid-column:auto/span 9}.s-result-list>.sg-col-10-of-20{grid-column:auto/span 10}.s-result-list>.sg-col-11-of-20{grid-column:auto/span 11}.s-result-list>.sg-col-12-of-20{grid-column:auto/span 12}.s-result-list>.sg-col-13-of-20{grid-column:auto/span 13}.s-result-list>.sg-col-14-of-20{grid-column:auto/span 14}.s-result-list>.sg-col-15-of-20{grid-column:auto/span 15}.s-result-list>.sg-col-16-of-20{grid-column:auto/span 16}.s-result-list>.sg-col-17-of-20{grid-column:auto/span 17}.s-result-list>.sg-col-18-of-20{grid-column:auto/span 18}.s-result-list>.sg-col-19-of-20{grid-column:auto/span 19}.s-result-list>.sg-col-20-of-20{grid-column:auto/span 20}}.sg-row.s-result-list{margin-right:-12px}.sg-row.s-result-list{grid-template-columns:repeat(12,1fr)}.s-result-list>.sg-col-13-of-16{grid-column:auto/span 12}.s-result-list>.sg-col-14-of-16{grid-column:auto/span 12}.s-result-list>.sg-col-15-of-16{grid-column:auto/span 12}.s-result-list>.sg-col-16-of-16{grid-column:auto/span 12}@media (min-width:1250px){.sg-row.s-result-list{grid-template-columns:repeat(16,1fr)}.s-result-list>.sg-col-17-of-20{grid-column:auto/span 16}.s-result-list>.sg-col-18-of-20{grid-column:auto/span 16}.s-result-list>.sg-col-19-of-20{grid-column:auto/span 16}.s-result-list>.sg-col-20-of-20{grid-column:auto/span 16}}@media (min-width:220px){.nav-ewc-persistent-hover.a-js .sg-row.s-result-list{grid-template-columns:repeat(12,1fr)}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-9-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-10-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-11-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-12-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-13-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-14-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-15-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-16-of-16{grid-column:auto/span 12}}@media (min-width:1470px){.nav-ewc-persistent-hover.a-js .sg-row.s-result-list{grid-template-columns:repeat(16,1fr)}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-13-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-14-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-15-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-16-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-17-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-18-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-19-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-20-of-20{grid-column:auto/span 16}}}
 
-
+from textwrap import indent
 import tinycss2
 import tinycss2.ast
 
@@ -314,35 +318,269 @@ def parse_rules(rules):
     return color_rules
 
 
+SPACE = tinycss2.ast.WhitespaceToken(None, None, ' ')
+COMMA = tinycss2.ast.LiteralToken(None, None, ',')
+# Long values for these properties, maybe containing a color
+# CSS_PROPS_LONG_COLOR = {
+#     'background',
+#     'border',
+#     'border-bottom',
+#     'border-left',
+#     'border-right',
+#     'border-top',
+#     'border-block-start',
+#     'border-block-end',
+#     'border-inline-start',
+#     'border-inline-end',
+#     'box-shadow',
+#     'column-rule',
+#     'outline',
+#     'text-decoration',
+#     'text-emphasis',
+#     'text-shadow',
+# }
+CSS_PROPS_LONG_COLOR = {
+    'box-shadow',
+    'text-shadow',
+}
+# Properties taking a color value
+CSS_PROPS_COLOR = {
+    'background-color',
+    'color',
+    'border-color',
+    'border-bottom-color',
+    'border-left-color',
+    'border-right-color',
+    'border-top-color',
+    'border-block-start-color',
+    'border-block-end-color',
+    'border-inline-start-color',
+    'border-inline-end-color',
+    'caret-color',
+    'column-rule-color',
+    'outline-color',
+    'text-decoration-color',
+    'text-emphasis-color',
+    # SVG
+    'stroke',
+    'fill',
+    'stop-color',
+    'flood-color',
+    'lighting-color',
+}
+
+
+def print_warning(msg, to_serialize=None, token=None):
+    print('WARNING::' + msg + ' [Line {}, Column {}]'.format(
+        token.source_line, token.source_column), file=sys.stderr)
+    if to_serialize is not None:
+        print(indent(tinycss2.serialize(to_serialize), '  '), file=sys.stderr)
+
+
 def parse_colors(declarations):
-    # https://tinycss2.readthedocs.io/en/latest/
+    """
+
+    Resources:
+      https://tinycss2.readthedocs.io/en/latest/
+      https://www.quackit.com/css/color/properties/
+      https://developer.mozilla.org/en-US/docs/Web/HTML/Applying_color
+    """
     color_declarations = []
     col_dec = []
-    is_color = False
-    for token in declarations:
-        if ((token.type == 'whitespace' and not col_dec) or
-                token.type == 'comment'):
-            continue  # ignore these tokens
-        # Otherwise
-        col_dec.append(token)
-        if token.type == 'literal' and token.value == ';':
-            # end of line
-            if is_color:
-                color_declarations.extend(col_dec)
-            # Reset
-            col_dec = []
-            is_color = False
-        elif (token.type == 'function' and
-              (token.lower_name == 'rgb' or token.lower_name == 'rgba')):
-            is_color = True  # rgb/rgba
+    is_color = False  # whether declaration has a color
+    is_property = True  # whether declaration is property or values side of ':'
+    is_single = False  # single or multiple values expected for property
+    is_known = False  # whether the color property is known or not
+
+    for i, token in enumerate(declarations, start=1):
+        if token.type == 'whitespace' or token.type == 'comment':
+            continue
+
+        if is_property:
+            if len(col_dec) > 1:  # prop + ':'
+                print_warning('More than one property discovered in single '
+                              'declaration #{}'.format(i), declarations, token)
+            col_dec.append(token)
+        else:
+            if col_dec[-1] is not SPACE:
+                col_dec.append(SPACE)
+            if not is_single:
+                col_dec.append(token)
+
+        color_hex = color_rgb = None
+        alpha = None
+        if token.type == 'literal':
+            if token.value == ';':
+                # end of line
+                if is_single:
+                    col_dec.append(token)
+                if is_color:
+                    if not is_known:
+                        print_warning('Parsed color for declaration with '
+                                      'unknown color property', col_dec, token)
+                    color_declarations.extend(col_dec)
+                # Reset
+                col_dec = []
+                is_property = True
+                is_color = is_single = is_known = False
+            elif token.value == ':':
+                if not is_property:
+                    print_warning('Multiple ":" tokens found in declaration '
+                                  '#{}'.format(i), declarations, token)
+                is_property = False
+                col_dec.append(SPACE)  # TODO...right spot?
+        elif token.type == 'function':
+            # Note that no argument validation is done here other than # of args
+            if is_property:
+                print_warning('Function token found in declaration '
+                              '#{}'.format(i), declarations, token)
+            else:
+                # For some reason, looks like browsers will auto-infer alpha
+                # channel if specified, so take into consideration here...
+                if token.lower_name == 'rgb' or token.lower_name == 'rgba':
+                    args = parse_color_func_args(token, 255)
+                    if args is not None:
+                        color_rgb = args[:3]
+                        if len(args) == 4:
+                            alpha = args[3]
+                elif token.lower_name == 'hsl' or token.lower_name == 'hsla':
+                    args = parse_color_func_args(token, 1)
+                    if args is not None:
+                        v_h, v_s, v_l = args[:3]
+                        if len(args) == 4:
+                            alpha = args[3]
+                        color_rgb = colorsys.hls_to_rgb(v_h, v_l, v_s)
         elif token.type == 'ident':
             token_val = token.value.lower()
-            if token_val.endswith('-color') or token_val == 'color':
-                is_color = True  # token with color as value
+            if is_property:
+                token_val_normalized = token_val
+                if token_val.startswith('-webkit-'):
+                    token_val_normalized = token_val[len('-webkit-'):]
+                elif token_val.startswith('-moz-'):
+                    token_val_normalized = token_val[len('-moz-'):]
+
+                if token.value.startswith('--'):
+                    is_single = is_known = False
+                elif token_val_normalized in CSS_PROPS_COLOR:
+                    # known property, expect 1 value, maybe color
+                    is_single = is_known = True
+                elif token_val_normalized + '-color' in CSS_PROPS_COLOR:
+                    # known property, expect 1 value, maybe color
+                    is_single = is_known = True
+                    token.value = token_val + '-color'
+                elif token_val_normalized in CSS_PROPS_LONG_COLOR:
+                    # known property, expect 1+ values, maybe color
+                    is_single = False
+                    is_known = True
+                else:
+                    # non-color/custom property, maybe color?
+                    is_single = is_known = False
+            else:
+                # Check if value is known CSS color
+                color_hex = COLOR_MAP.get(token_val)
         elif token.type == 'hash':
-            # TODO: is this always true?
-            is_color = True  # hash token, get value using `token.value`
+            if is_property:
+                print_warning('Hash token parsed as property in declaration '
+                              '#{}'.format(i), declarations, token)
+            else:
+                # TODO: is this always a color here?
+                tv = token.value
+                if len(tv) == 3:
+                    color_hex = int(tv[0] + tv[0] + tv[1] + tv[1] +
+                                    tv[2] + tv[2], 16)
+                elif len(tv) == 4:
+                    color_hex = int(tv[0] + tv[0] + tv[1] + tv[1] +
+                                    tv[2] + tv[2], 16)
+                    alpha = int(tv[3], 16) / 0x10
+                elif len(tv) == 6:
+                    color_hex = int(tv, 16)
+                elif len(tv) == 8:
+                    color_hex = int(tv[:6], 16)
+                    alpha = int(tv[6:], 16) / 0x100
+                else:
+                    print_warning('Malformed hash token (as color) in '
+                                  'declaration #{}'.format(i), declarations,
+                                  token)
+
+        if not is_property and (color_hex is not None or color_rgb is not None):
+            is_color = True
+            if color_rgb is None:
+                color_rgb = hex2rgb(color_hex)
+            color_rgb = handle_color(color_rgb)
+            # Create rgb[a] token
+            arguments = [make_number_token(color_rgb[0]), COMMA,
+                         make_number_token(color_rgb[1]), COMMA,
+                         make_number_token(color_rgb[2])]
+            if alpha is None:
+                function = 'rgb'
+            else:
+                function = 'rgba'
+                arguments.extend([COMMA, make_number_token(alpha)])
+
+            color_token = tinycss2.ast.FunctionBlock(
+                line=None, column=None, name=function, arguments=arguments
+            )
+            if is_single:
+                col_dec.append(color_token)
+            else:
+                col_dec[-1] = color_token
+
+        if i == len(declarations):  # last token
+            if is_color:
+                if not is_known:
+                    print_warning('Parsed color for declaration with '
+                                  'unknown color property', col_dec, token)
+                color_declarations.extend(col_dec)
     return color_declarations
+
+
+def make_number_token(value):
+    value_as_int = int(value)
+    return tinycss2.ast.NumberToken(
+        None, None, value, value_as_int,
+        str(value if value == value_as_int else round(value, 3))
+    )
+
+
+def parse_color_func_args(func_token, pct_of):
+    values = []
+    need_comma = False
+    for arg in func_token.arguments:
+        if need_comma:
+            if arg.type == 'literal' and arg.value == ',':
+                need_comma = False
+            elif arg.type != 'whitespace':
+                return None  # invalid arguments
+        else:
+            if arg.type == 'number':
+                values.append(arg.value)
+                need_comma = True
+            elif arg.type == 'percentage':
+                # 4th argument assumed to be alpha (% of 1)
+                values.append(arg.value * 1. / 100 if len(values) == 3 else
+                              arg.value * pct_of / 100)
+                need_comma = True
+            elif arg.type != 'whitespace':
+                return None  # invalid arguments
+    if not 3 <= len(values) <= 4:
+        return None
+    return values
+
+
+def hex2rgb(h):
+    b = h & 0xff
+    g = (h >> 8) & 0xff
+    r = (h >> 16) & 0xff
+    return r, g, b
+
+
+def handle_color(rgb):
+    color_hsv = colorsys.rgb_to_hsv(*rgb)
+    # Filter saturate + output
+    if color_hsv[1] < 0.15:
+        # Invert color
+        rgb = tuple(255 - c for c in rgb)
+    return rgb
 
 
 with open('css/nytimes.css') as f:
@@ -358,35 +596,35 @@ print(tinycss2.serialize(color_rules))
 # <IdentToken color>, <LiteralToken :>, <HashToken #fff>
 
 
-for match in RE_R.finditer(css_mod):
-    rule, nested = match.groups()
-    # Check if nested, e.g. due to @media...{...{...}...}
-    if nested:
-        # print('I am too dumb to handle this properly so hopefully this works '
-        #       'treating as non-nested color-replacement rule...')
-        # TODO: this code is correct but just use code past continue in function
-        #  etc.
-        # sub_iter = RE_R.finditer(rule[0])
-        print('FIXME::ignoring rule', rule, file=sys.stderr)
-
-    # if RE_C.search(rule):
-    #     print(rule)
-    start = rule.index('{')
-    rule_content = rule[start + 1:rule.rindex('}')]
-    color_content = []
-    for line in rule_content.split(';'):
-        # TODO: multiple colors in same line/rule...
-        color_match = RE_C.search(line)
-        if color_match:
-            handle_color(line)
-    if color_content:
-        sep = '\n    '
-        rule_pretty = (
-                ',\n'.join(
-                    [s.strip() for s in rule[:start].split(',')]) + ' {' +
-                sep + sep.join(color_content) + '\n}'
-        )
-        rule_out += rule_pretty + '\n'
+# for match in RE_R.finditer(css_mod):
+#     rule, nested = match.groups()
+#     # Check if nested, e.g. due to @media...{...{...}...}
+#     if nested:
+#         # print('I am too dumb to handle this properly so hopefully this works '
+#         #       'treating as non-nested color-replacement rule...')
+#         # TODO: this code is correct but just use code past continue in function
+#         #  etc.
+#         # sub_iter = RE_R.finditer(rule[0])
+#         print('FIXME::ignoring rule', rule, file=sys.stderr)
+#
+#     # if RE_C.search(rule):
+#     #     print(rule)
+#     start = rule.index('{')
+#     rule_content = rule[start + 1:rule.rindex('}')]
+#     color_content = []
+#     for line in rule_content.split(';'):
+#         # TODO: multiple colors in same line/rule...
+#         color_match = RE_C.search(line)
+#         if color_match:
+#             handle_color(line)
+#     if color_content:
+#         sep = '\n    '
+#         rule_pretty = (
+#                 ',\n'.join(
+#                     [s.strip() for s in rule[:start].split(',')]) + ' {' +
+#                 sep + sep.join(color_content) + '\n}'
+#         )
+#         rule_out += rule_pretty + '\n'
 
 # standardized_colors = []
 # for c in colors:
@@ -427,7 +665,7 @@ for match in RE_R.finditer(css_mod):
 #     ax.imshow_rgb(*map(np.asarray, zip(*to_vis)))
 #     fig.suptitle(str(k))
 
-print(rule_out)
+# print(rule_out)
 # print(sorted(set(standardized_colors)))
 
 
