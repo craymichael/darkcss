@@ -521,14 +521,34 @@ css-purge -i scratch_dark.css -o scratch_dark_purged.css
 """
 
 if __name__ == '__main__':
+    import os
+
+    _FILE_ = os.path.basename(sys.argv[0])
+
     if len(sys.argv) == 1:
         css_orig = sys.stdin.read()
     elif len(sys.argv) == 2:
+        if sys.argv[1].lower() in {'-h', '-help', '--help'}:
+            # TODO: other strategies, thresholds, etc.
+            # TODO(future): use HTML document structure to determine what to
+            #  invert (e.g. black backgrounds won't change to white, max. area
+            #  of screen to be dark)
+            sys.exit('Usage: {0} [file.css] [--help]\n\nParses a CSS file and '
+                     'then prints to stdout the CSS in "dark mode": low-'
+                     'saturation colors in CSS rules are inverted. If no CSS '
+                     'file is provided, then input is assumed to come in from '
+                     'stdin.\n\nExample usages:\n  {0} mysite.css\n  '
+                     'echo mysite.css | {0}\n  xclip -o | {0} > '
+                     'from_clipboard.css\n  xclip -o | {0} | xclip -section '
+                     'c'.format(_FILE_))
         filename = sys.argv[1]
+        if not os.path.isfile(filename):
+            sys.exit('{} is not a file. Run with "--help" for valid '
+                     'usage.'.format(filename))
         with open(filename, 'r') as f:
             css_orig = f.read()
     else:
-        sys.exit('Usage: use it correctly')
+        sys.exit('Usage: {} [file.css] [--help]'.format(_FILE_))
 
     css = tinycss2.parse_stylesheet(css_orig, skip_comments=True,
                                     skip_whitespace=True)
