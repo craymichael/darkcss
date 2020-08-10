@@ -150,10 +150,10 @@ COLOR_MAP = {
 }
 COLORS = list(COLOR_MAP.keys())
 COLOR_MAP = dict(zip(map(str.lower, COLORS), COLOR_MAP.values()))
-
 SPACE = tinycss2.ast.WhitespaceToken(None, None, ' ')
-
 COMMA = tinycss2.ast.LiteralToken(None, None, ',')
+IMPORTANT = [tinycss2.ast.LiteralToken(None, None, '!'),
+             tinycss2.ast.IdentToken(None, None, 'important')]
 # Long values for these properties, maybe containing a color
 # CSS_PROPS_LONG_COLOR__UNUSED = {
 #     'background',
@@ -211,7 +211,6 @@ def parse_rules(rules):
             continue  # no declarations, either empty or @import
         color_sub_rules = None
         if rule.type == 'at-rule':
-            at_keyword = rule.at_keyword
             sub_rules = []
             declarations = []
             at_rule_content = tinycss2.parse_stylesheet(
@@ -232,10 +231,6 @@ def parse_rules(rules):
             color_declarations.extend(color_sub_rules)
 
         if color_declarations:
-            # color_rule = tinycss2.ast.QualifiedRule(
-            #     line=rule.source_line, column=rule.source_column,
-            #     prelude=selector, content=color_declarations
-            # )
             rule.content = color_declarations
             color_rules.append(rule)
     # Return CSS string
@@ -353,6 +348,11 @@ def parse_colors(declarations):
                 else:
                     # non-color/custom property, maybe color?
                     is_single = is_known = False
+            elif (i > 1 and token_val == 'important' and
+                  declarations[i - 2].type == 'literal' and
+                  declarations[i - 2].value == '!'):
+                # !important
+                col_dec.extend(IMPORTANT)
             else:
                 # Check if value is known CSS color
                 color_hex = COLOR_MAP.get(token_val)
@@ -461,14 +461,6 @@ def handle_color(rgb):
     return rgb
 
 
-with open('css/nytimes.css') as f:
-    css = tinycss2.parse_stylesheet(f.read(), skip_comments=True,
-                                    skip_whitespace=True)
-
-parsed_color_rules = parse_rules(css)
-# Output the parsed CSS - TODO: if css-purge exists use with temporary file
-print(tinycss2.serialize(parsed_color_rules))
-
 # === Code for taking all colors and visualizing things/showing unique ===
 # standardized_colors = []
 # for c in colors:
@@ -527,3 +519,20 @@ sudo npm install css-purge -g
 css-purge -i scratch_dark.css -o scratch_dark_purged.css
 ```
 """
+
+if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        css_orig = sys.stdin.read()
+    elif len(sys.argv) == 2:
+        filename = sys.argv[1]
+        with open(filename, 'r') as f:
+            css_orig = f.read()
+    else:
+        sys.exit('Usage: use it correctly')
+
+    css = tinycss2.parse_stylesheet(css_orig, skip_comments=True,
+                                    skip_whitespace=True)
+
+    parsed_color_rules = parse_rules(css)
+    # Output the parsed CSS - TODO: if css-purge exists use with temporary file
+    print(tinycss2.serialize(parsed_color_rules))
