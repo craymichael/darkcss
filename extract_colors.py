@@ -1,7 +1,9 @@
-import re
 import sys
 import colorsys
-from itertools import chain
+from textwrap import indent
+
+import tinycss2
+import tinycss2.ast
 
 # Source: https://w3schools.sinsixx.com/css/css_colornames.asp.htm
 COLOR_MAP = {
@@ -147,181 +149,13 @@ COLOR_MAP = {
     'YellowGreen': 0x9ACD32
 }
 COLORS = list(COLOR_MAP.keys())
-# COLOR_MAP = dict(zip(map(str.upper, COLORS), COLOR_MAP.values()))
 COLOR_MAP = dict(zip(map(str.lower, COLORS), COLOR_MAP.values()))
-# COLORS_UPPER = list(COLOR_MAP.keys())
-# COLORS_LOWER = list(map(str.lower, COLORS))
-# COLORS_MISC = [
-#     r'rgb *\( *[0-9]{1,3} *, *[0-9]{1,3} *, *[0-9]{1,3} *\)',
-#     # TODO: alpha is 0-1
-#     r'rgba *\( *[0-9]{1,3} *, *[0-9]{1,3} *, *[0-9]{1,3} *, *[0-9]{1,3} *\)'
-# ]
-# RE_C = re.compile(
-#     r'(#[a-fA-F0-9]{3}|'
-#     r'#[a-fA-F0-9]{6}|'
-#     r'(?<=[: \t\n])(?:' +
-#     '|'.join(chain(COLORS, COLORS_UPPER, COLORS_LOWER, COLORS_MISC)) +
-#     r'))'
-#     r'(?:[; \t\n!}]+|$)'
-# )
-# # CSS rules
-# RE_R = re.compile(
-#     r'([^{}]+{(?:([^{}]*{[^{}]*}[^{}]*)+|[^{}]*)})'
-# )
-
-
-# if len(sys.argv) == 1:
-#     css_orig = sys.stdin.read()
-# elif len(sys.argv) == 2:
-#     filename = sys.argv[1]
-#     with open(filename, 'r') as f:
-#         css_orig = f.read()
-# else:
-#     sys.exit('Usage: use it correctly')
-#
-# css_tmp = css_orig
-# css_mod = ''
-# while True:
-#     # Remove comments
-#     idx_a = css_tmp.find('/*')
-#     if idx_a == -1:
-#         css_mod += css_tmp
-#         break
-#     idx_b_adjust = idx_a + 2
-#     idx_b = css_tmp[idx_b_adjust:].find('*/') + idx_b_adjust
-#     if idx_b == -1:
-#         raise ValueError('Invalid comment: "{}"'.format(
-#             css_tmp[idx_a:idx_a + 80]))
-#     css_mod += css_tmp[:idx_a]
-#     css_tmp = css_tmp[idx_b + 2:]
-
-
-# def handle_color(line):
-#     # TODO: hex with opacity (e.g. #00f4 or #0000ff44, 4/16 opacity)
-#     # TODO hsl[a] takes in percentages...
-#     # Color
-#     color_orig = color = color_match.groups()[0]
-#     alpha = None
-#
-#     if color.startswith('#'):
-#         color = color[1:]
-#         if len(color) == 6:
-#             pass
-#         elif len(color) == 3:
-#             color = color[0] * 2 + color[1] * 2 + color[2] * 2
-#         else:
-#             raise RuntimeError('This was unexpected')
-#         color_rgb = (int(color[:2], 16),
-#                      int(color[2:4], 16),
-#                      int(color[4:], 16))
-#     elif color.startswith('rgb'):
-#         color_rgb = color[color.index('(') + 1:
-#                           color.index(')')].split(',')
-#         if color[3] == 'a':
-#             assert len(color_rgb) == 4
-#             alpha = color_rgb.pop(3)
-#         else:
-#             assert len(color_rgb) == 3
-#         color_rgb = list(map(int, color_rgb))
-#     else:
-#         color = format(COLOR_MAP[color.upper()], '06X')
-#         color_rgb = (int(color[:2], 16),
-#                      int(color[2:4], 16),
-#                      int(color[4:], 16))
-#
-#     colors.append(color)
-#
-#     color_hsv = colorsys.rgb_to_hsv(*color_rgb)
-#
-#     # Filter saturate + output
-#     # if color_rgb == (48, 65, 84):  # TODO: ad hoc for propublica
-#     if color_hsv[1] < 0.15:
-#         # Invert color
-#         # color_rgb = [120, 147, 179]  # TODO: ad hoc for propublica
-#         color_rgb = [255 - c for c in color_rgb]
-#         if alpha is None:
-#             color = '#' + ''.join(map(lambda u: format(u, '02X'),
-#                                       color_rgb))
-#         else:
-#             color_rgb.append(alpha)
-#             color = 'rgba({}, {}, {}, {})'.format(*color_rgb)
-#         line = line.replace(color_orig, color)
-#
-#         # Rule with colors
-#         color_content.append(
-#             ': '.join(line.strip().split(':', 1)) + ';'
-#         )
-#     # Rescale from min-max 000-FFF to 111-EEE
-#     # def scale_channel(ch):
-#     #     return round(ch / 0xFF * (0xEE - 0x11) + 0x11)
-#     #
-#     #
-#     # color_rgb = list(map(scale_channel, color_rgb))
-#     # if alpha is None:
-#     #     color = '#' + ''.join(map(lambda u: format(u, '02X'),
-#     #                               color_rgb))
-#     # else:
-#     #     color_rgb.append(alpha)
-#     #     color = 'rgba({}, {}, {}, {})'.format(*color_rgb)
-#     # line = line.replace(color_orig, color)
-#     # # Rule with colors
-#     # color_content.append(
-#     #     ': '.join(line.strip().split(':', 1)) + ';'
-#     # )
-
-
-# rule_out = ''
-# colors = []
-# TODO: the following string breaks RE_R regex (catastrophic backtracking):
-#  @supports (grid-auto-flow:dense){.sg-row.s-result-list{display:grid;align-items:stretch;justify-items:stretch}.sg-row.s-result-list.s-search-results{grid-auto-flow:dense}.s-result-list>.sg-col{float:none;min-width:0;width:auto}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col{min-width:0;width:auto}.s-result-list>.s-flex-geom.sg-col{display:block}.s-result-list>*{grid-column:1/-1}.s-result-list>.sg-col-1-of-16{grid-column:auto/span 1}.s-result-list>.sg-col-2-of-16{grid-column:auto/span 2}.s-result-list>.sg-col-3-of-16{grid-column:auto/span 3}.s-result-list>.sg-col-4-of-16{grid-column:auto/span 4}.s-result-list>.sg-col-5-of-16{grid-column:auto/span 5}.s-result-list>.sg-col-6-of-16{grid-column:auto/span 6}.s-result-list>.sg-col-7-of-16{grid-column:auto/span 7}.s-result-list>.sg-col-8-of-16{grid-column:auto/span 8}.s-result-list>.sg-col-9-of-16{grid-column:auto/span 9}.s-result-list>.sg-col-10-of-16{grid-column:auto/span 10}.s-result-list>.sg-col-11-of-16{grid-column:auto/span 11}.s-result-list>.sg-col-12-of-16{grid-column:auto/span 12}.s-result-list>.sg-col-13-of-16{grid-column:auto/span 13}.s-result-list>.sg-col-14-of-16{grid-column:auto/span 14}.s-result-list>.sg-col-15-of-16{grid-column:auto/span 15}.s-result-list>.sg-col-16-of-16{grid-column:auto/span 16}@media (min-width:1250px){.s-result-list>.sg-col-1-of-20{grid-column:auto/span 1}.s-result-list>.sg-col-2-of-20{grid-column:auto/span 2}.s-result-list>.sg-col-3-of-20{grid-column:auto/span 3}.s-result-list>.sg-col-4-of-20{grid-column:auto/span 4}.s-result-list>.sg-col-5-of-20{grid-column:auto/span 5}.s-result-list>.sg-col-6-of-20{grid-column:auto/span 6}.s-result-list>.sg-col-7-of-20{grid-column:auto/span 7}.s-result-list>.sg-col-8-of-20{grid-column:auto/span 8}.s-result-list>.sg-col-9-of-20{grid-column:auto/span 9}.s-result-list>.sg-col-10-of-20{grid-column:auto/span 10}.s-result-list>.sg-col-11-of-20{grid-column:auto/span 11}.s-result-list>.sg-col-12-of-20{grid-column:auto/span 12}.s-result-list>.sg-col-13-of-20{grid-column:auto/span 13}.s-result-list>.sg-col-14-of-20{grid-column:auto/span 14}.s-result-list>.sg-col-15-of-20{grid-column:auto/span 15}.s-result-list>.sg-col-16-of-20{grid-column:auto/span 16}.s-result-list>.sg-col-17-of-20{grid-column:auto/span 17}.s-result-list>.sg-col-18-of-20{grid-column:auto/span 18}.s-result-list>.sg-col-19-of-20{grid-column:auto/span 19}.s-result-list>.sg-col-20-of-20{grid-column:auto/span 20}}.sg-row.s-result-list{margin-right:-12px}.sg-row.s-result-list{grid-template-columns:repeat(12,1fr)}.s-result-list>.sg-col-13-of-16{grid-column:auto/span 12}.s-result-list>.sg-col-14-of-16{grid-column:auto/span 12}.s-result-list>.sg-col-15-of-16{grid-column:auto/span 12}.s-result-list>.sg-col-16-of-16{grid-column:auto/span 12}@media (min-width:1250px){.sg-row.s-result-list{grid-template-columns:repeat(16,1fr)}.s-result-list>.sg-col-17-of-20{grid-column:auto/span 16}.s-result-list>.sg-col-18-of-20{grid-column:auto/span 16}.s-result-list>.sg-col-19-of-20{grid-column:auto/span 16}.s-result-list>.sg-col-20-of-20{grid-column:auto/span 16}}@media (min-width:220px){.nav-ewc-persistent-hover.a-js .sg-row.s-result-list{grid-template-columns:repeat(12,1fr)}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-9-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-10-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-11-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-12-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-13-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-14-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-15-of-16{grid-column:auto/span 12}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-16-of-16{grid-column:auto/span 12}}@media (min-width:1470px){.nav-ewc-persistent-hover.a-js .sg-row.s-result-list{grid-template-columns:repeat(16,1fr)}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-13-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-14-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-15-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-16-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-17-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-18-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-19-of-20{grid-column:auto/span 16}.nav-ewc-persistent-hover.a-js .s-result-list>.sg-col-20-of-20{grid-column:auto/span 16}}}
-
-from textwrap import indent
-import tinycss2
-import tinycss2.ast
-
-
-def parse_rules(rules):
-    color_rules = []
-    for rule in rules:
-        if not rule.content:
-            continue  # no declarations, either empty or @import
-        color_sub_rules = None
-        if rule.type == 'at-rule':
-            at_keyword = rule.at_keyword
-            sub_rules = []
-            declarations = []
-            at_rule_content = tinycss2.parse_stylesheet(
-                rule.content, skip_comments=True, skip_whitespace=True)
-            for token in at_rule_content:
-                if token.type.endswith('-rule'):
-                    sub_rules.append(token)
-                else:
-                    declarations.append(token)
-            if sub_rules:
-                color_sub_rules = parse_rules(sub_rules)
-        else:
-            declarations = rule.content
-        # Grab color declarations
-        color_declarations = parse_colors(declarations)
-
-        if color_sub_rules:
-            color_declarations.extend(color_sub_rules)
-
-        if color_declarations:
-            # color_rule = tinycss2.ast.QualifiedRule(
-            #     line=rule.source_line, column=rule.source_column,
-            #     prelude=selector, content=color_declarations
-            # )
-            rule.content = color_declarations
-            color_rules.append(rule)
-    # Return CSS string
-    return color_rules
-
 
 SPACE = tinycss2.ast.WhitespaceToken(None, None, ' ')
+
 COMMA = tinycss2.ast.LiteralToken(None, None, ',')
 # Long values for these properties, maybe containing a color
-# CSS_PROPS_LONG_COLOR = {
+# CSS_PROPS_LONG_COLOR__UNUSED = {
 #     'background',
 #     'border',
 #     'border-bottom',
@@ -370,6 +204,44 @@ CSS_PROPS_COLOR = {
 }
 
 
+def parse_rules(rules):
+    color_rules = []
+    for rule in rules:
+        if not rule.content:
+            continue  # no declarations, either empty or @import
+        color_sub_rules = None
+        if rule.type == 'at-rule':
+            at_keyword = rule.at_keyword
+            sub_rules = []
+            declarations = []
+            at_rule_content = tinycss2.parse_stylesheet(
+                rule.content, skip_comments=True, skip_whitespace=True)
+            for token in at_rule_content:
+                if token.type.endswith('-rule'):
+                    sub_rules.append(token)
+                else:
+                    declarations.append(token)
+            if sub_rules:
+                color_sub_rules = parse_rules(sub_rules)
+        else:
+            declarations = rule.content
+        # Grab color declarations
+        color_declarations = parse_colors(declarations)
+
+        if color_sub_rules:
+            color_declarations.extend(color_sub_rules)
+
+        if color_declarations:
+            # color_rule = tinycss2.ast.QualifiedRule(
+            #     line=rule.source_line, column=rule.source_column,
+            #     prelude=selector, content=color_declarations
+            # )
+            rule.content = color_declarations
+            color_rules.append(rule)
+    # Return CSS string
+    return color_rules
+
+
 def print_warning(msg, to_serialize=None, token=None):
     print('WARNING::' + msg + ' [Line {}, Column {}]'.format(
         token.source_line, token.source_column), file=sys.stderr)
@@ -412,8 +284,14 @@ def parse_colors(declarations):
         if token.type == 'literal':
             if token.value == ';':
                 # end of line
+                # TODO: space logic is sloppy
                 if is_single:
-                    col_dec.append(token)
+                    if col_dec[-1] is SPACE:
+                        col_dec[-1] = token
+                    else:
+                        col_dec.append(token)
+                elif col_dec[-2] is SPACE:
+                    del col_dec[-2]
                 if is_color:
                     if not is_known:
                         print_warning('Parsed color for declaration with '
@@ -428,8 +306,8 @@ def parse_colors(declarations):
                     print_warning('Multiple ":" tokens found in declaration '
                                   '#{}'.format(i), declarations, token)
                 is_property = False
-                col_dec.append(SPACE)  # TODO...right spot?
-        elif token.type == 'function':
+                col_dec.append(SPACE)
+        elif token.type == 'function':  # TODO: linear gradients, etc...
             # Note that no argument validation is done here other than # of args
             if is_property:
                 print_warning('Function token found in declaration '
@@ -587,45 +465,11 @@ with open('css/nytimes.css') as f:
     css = tinycss2.parse_stylesheet(f.read(), skip_comments=True,
                                     skip_whitespace=True)
 
-color_rules = parse_rules(css)
-print(tinycss2.serialize(color_rules))
+parsed_color_rules = parse_rules(css)
+# Output the parsed CSS - TODO: if css-purge exists use with temporary file
+print(tinycss2.serialize(parsed_color_rules))
 
-# TODO
-# tinycss2.ast.FunctionBlock -> x.arguments for rgb/rgba (x.name)
-# <IdentToken color>, <LiteralToken :>, <IdentToken black>
-# <IdentToken color>, <LiteralToken :>, <HashToken #fff>
-
-
-# for match in RE_R.finditer(css_mod):
-#     rule, nested = match.groups()
-#     # Check if nested, e.g. due to @media...{...{...}...}
-#     if nested:
-#         # print('I am too dumb to handle this properly so hopefully this works '
-#         #       'treating as non-nested color-replacement rule...')
-#         # TODO: this code is correct but just use code past continue in function
-#         #  etc.
-#         # sub_iter = RE_R.finditer(rule[0])
-#         print('FIXME::ignoring rule', rule, file=sys.stderr)
-#
-#     # if RE_C.search(rule):
-#     #     print(rule)
-#     start = rule.index('{')
-#     rule_content = rule[start + 1:rule.rindex('}')]
-#     color_content = []
-#     for line in rule_content.split(';'):
-#         # TODO: multiple colors in same line/rule...
-#         color_match = RE_C.search(line)
-#         if color_match:
-#             handle_color(line)
-#     if color_content:
-#         sep = '\n    '
-#         rule_pretty = (
-#                 ',\n'.join(
-#                     [s.strip() for s in rule[:start].split(',')]) + ' {' +
-#                 sep + sep.join(color_content) + '\n}'
-#         )
-#         rule_out += rule_pretty + '\n'
-
+# === Code for taking all colors and visualizing things/showing unique ===
 # standardized_colors = []
 # for c in colors:
 #     if c.startswith('#'):
