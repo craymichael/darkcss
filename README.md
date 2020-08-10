@@ -1,7 +1,21 @@
 # Dark CSS
+
 Parses a CSS file and then prints to stdout the CSS in "dark mode":
 low-saturation colors in CSS rules are inverted. If no CSS file is provided,
 then input is assumed to come in from stdin.
+
+## Installation
+
+This repository only requires a single package: `tinycss2` (a lightweight CSS 
+tokenizer with serialization capability). To install:
+
+```shell script
+git clone https://github.com/craymichael/darkcss.git
+cd darkcss/
+pip install -r requirements.txt
+```
+
+## Usage
 
 ```text
 Usage: darken.py [file.css] [--help]
